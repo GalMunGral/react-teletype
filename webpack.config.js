@@ -1,5 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const WorkerManifestWebpackPlugin = require("./worker-manifest-webpack-plugin");
 
 module.exports = () => ({
   mode: "development",
@@ -9,7 +10,10 @@ module.exports = () => ({
   },
   output: {
     path: path.join(__dirname, "./dist"),
-    filename: "[name].js",
+    filename: "[name]~[hash].js",
+  },
+  resolve: {
+    extensions: [".tsx", ".ts", "..."],
   },
   module: {
     rules: [
@@ -26,7 +30,9 @@ module.exports = () => ({
   plugins: [
     new HtmlWebpackPlugin({
       title: "split-renderer-demo",
+      template: "./src/template.html",
       chunks: ["main"],
     }),
+    new WorkerManifestWebpackPlugin(),
   ],
 });
