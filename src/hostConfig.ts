@@ -1,5 +1,5 @@
 import { HostConfig } from "react-reconciler";
-import { Mutation, SWElement, SWText } from "./WorkerDOM";
+import { Mutation, SWElement, SWText } from "./ServiceWorkerDOM";
 
 export type CustomHostConfig = HostConfig<
   any,

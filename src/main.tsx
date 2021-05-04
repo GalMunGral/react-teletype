@@ -1,5 +1,5 @@
 import { Message } from "./types";
-import { Mutation } from "./WorkerDOM";
+import { Mutation } from "./ServiceWorkerDOM";
 
 const messageChannel = new MessageChannel();
 const nodeMap = new Map();

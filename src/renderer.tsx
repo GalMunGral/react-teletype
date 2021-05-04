@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import Reconciler from "react-reconciler";
 import { CustomHostConfig } from "./hostConfig";
 import hostConfig from "./hostConfig";
-import { SWElement } from "./WorkerDOM";
+import { SWElement } from "./ServiceWorkerDOM";
 
 const SplitReconcilier = Reconciler(
   (hostConfig as unknown) as CustomHostConfig
