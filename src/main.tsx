@@ -92,12 +92,25 @@ function handleMessage(msg: Message) {
 
 async function registerWorker() {
   const manifest = await (await fetch("/worker-manifest.json")).json();
-  const registration = await navigator.serviceWorker.register(manifest.path);
-  console.debug(registration);
+  const reg = await navigator.serviceWorker.register(manifest.path);
+  const serviceWorker = reg.active || reg.waiting || reg.installing;
+  if (!serviceWorker) return;
+  if (serviceWorker.state !== "activated") {
+    serviceWorker.onstatechange = handleServiceWorkerStateChange;
+  } else {
+    establishMessageChannel(serviceWorker);
+  }
+}
+
+function handleServiceWorkerStateChange(this: ServiceWorker) {
+  if (this.state === "activated") {
+    establishMessageChannel(this);
+  }
+}
+
+function establishMessageChannel(serviceWorker: ServiceWorker) {
   messageChannel.port1.onmessage = (e) => handleMessage(e.data);
-  navigator.serviceWorker.controller?.postMessage({ type: "CONNECT" }, [
-    messageChannel.port2,
-  ]);
+  serviceWorker.postMessage({ type: "CONNECT" }, [messageChannel.port2]);
 }
 
 registerWorker();

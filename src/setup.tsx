@@ -6,8 +6,24 @@ import { Message } from "./types";
 import renderClients from "./clients";
 import StoreProvider from "./StoreProvider";
 
+const once = (fn: (...args: any[]) => any) => {
+  let called = false;
+  return function (...args: any[]) {
+    if (called) return;
+    called = true;
+    return fn(...args);
+  };
+};
+
+const someCostlyInitFn = once(
+  () =>
+    new Promise((resolve) => {
+      setTimeout(resolve, 10000);
+    })
+);
+
 function setup(App: React.ComponentType, update: Reducer) {
-  self.addEventListener("message", (e) => {
+  self.addEventListener("message", async (e) => {
     if (e.data.type === "CONNECT") {
       const clientId = (e.source as WindowClient)?.id;
       const port = e.ports[0];
@@ -29,6 +45,13 @@ function setup(App: React.ComponentType, update: Reducer) {
         renderer,
         store,
       });
+
+      // simulating a costly initialization
+      const start = performance.now();
+      console.log(`%cWAITING FOR INIT`, "background: red");
+      await someCostlyInitFn();
+      const t = performance.now() - start;
+      console.log(`%cINIT TOOK ${t}ms`, "background: red");
 
       renderer.render(
         <StoreProvider store={store}>
