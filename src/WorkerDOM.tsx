@@ -1,6 +1,3 @@
-// declare let self: ServiceWorkerGlobalScope;
-
-import renderClients from "./clients";
 import { Message } from "./types";
 
 export type Mutation =
@@ -22,19 +19,15 @@ export type Mutation =
 class Teletype {
   static nextId = 0;
   public id = Teletype.nextId++;
-  constructor(private clientId: string) {}
+  constructor(private clientPort: MessagePort) {}
   protected sendMessage(msg: Message) {
-    const client = renderClients.get(this.clientId);
-    if (!client) {
-      console.warn("Client port not found");
-    }
-    client?.port.postMessage(msg);
+    this.clientPort.postMessage(msg);
   }
 }
 
 export class SWText extends Teletype {
-  constructor(public text: string, clientId: string) {
-    super(clientId);
+  constructor(public text: string, clientPort: MessagePort) {
+    super(clientPort);
     this.sendMessage({
       type: "CREATE_TEXT_INSTANCE",
       payload: {
@@ -59,10 +52,10 @@ export class SWElement extends Teletype {
   constructor(
     public type: string,
     public props: Record<string, any>,
-    clientId: string,
+    clientPort: MessagePort,
     public isRoot = false
   ) {
-    super(clientId);
+    super(clientPort);
     this.sendMessage({
       type: "CREATE_INSTANCE",
       payload: {

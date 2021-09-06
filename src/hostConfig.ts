@@ -1,5 +1,5 @@
 import { HostConfig } from "react-reconciler";
-import { Mutation, SWElement, SWText } from "./ServiceWorkerDOM";
+import { Mutation, SWElement, SWText } from "./WorkerDOM";
 
 export type CustomHostConfig = HostConfig<
   any,
@@ -69,7 +69,7 @@ function compareProps(
 const hostConfig = {
   getRootHostContext(container) {
     return {
-      clientId: container.clientId,
+      clientPort: container.clientPort,
     };
   },
   getChildHostContext(parentHostContext) {
@@ -82,13 +82,13 @@ const hostConfig = {
     console.log("TODO: reset text content", node);
   },
   createInstance(type, props, _, hostContext) {
-    const { clientId } = hostContext;
+    const { clientPort } = hostContext;
     props = resolveProps(props);
-    return new SWElement(type, props, clientId);
+    return new SWElement(type, props, clientPort);
   },
   createTextInstance(text, _, hostContext) {
-    const { clientId } = hostContext;
-    return new SWText(text, clientId);
+    const { clientPort } = hostContext;
+    return new SWText(text, clientPort);
   },
   finalizeInitialChildren() {
     return false;

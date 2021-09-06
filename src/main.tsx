@@ -1,5 +1,5 @@
 import { Message } from "./types";
-import { Mutation } from "./ServiceWorkerDOM";
+import { Mutation } from "./WorkerDOM";
 
 const messageChannel = new MessageChannel();
 const nodeMap = new Map();
@@ -90,27 +90,9 @@ function handleMessage(msg: Message) {
   }
 }
 
-async function registerWorker() {
+(async () => {
   const manifest = await (await fetch("/worker-manifest.json")).json();
-  const reg = await navigator.serviceWorker.register(manifest.path);
-  const serviceWorker = reg.active || reg.waiting || reg.installing;
-  if (!serviceWorker) return;
-  if (serviceWorker.state !== "activated") {
-    serviceWorker.onstatechange = handleServiceWorkerStateChange;
-  } else {
-    establishMessageChannel(serviceWorker);
-  }
-}
-
-function handleServiceWorkerStateChange(this: ServiceWorker) {
-  if (this.state === "activated") {
-    establishMessageChannel(this);
-  }
-}
-
-function establishMessageChannel(serviceWorker: ServiceWorker) {
-  messageChannel.port1.onmessage = (e) => handleMessage(e.data);
-  serviceWorker.postMessage({ type: "CONNECT" }, [messageChannel.port2]);
-}
-
-registerWorker();
+  const worker = new SharedWorker(manifest.path);
+  worker.port.onmessage = (e) => handleMessage(e.data);
+  worker.port.start();
+})();

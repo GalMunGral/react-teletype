@@ -1,11 +1,28 @@
-declare const self: ServiceWorkerGlobalScope;
-
-import setup from "./setup";
+declare const self: SharedWorkerGlobalScope;
+import React from "react";
+import SplitRenderer from "./renderer";
+import Store, { Reducer } from "./Store";
+import { Message } from "./types";
+import StoreProvider from "./StoreProvider";
 import App from "./demo-app/App";
 import update from "./demo-app/update";
 
-self.addEventListener("install", (e) => {
-  self.skipWaiting();
-});
+self.addEventListener("connect", async (e) => {
+  const port = e.ports[0];
 
-setup(App, update);
+  // Model - Update
+  const store = new Store(update);
+  store.dispatch({ type: "INIT" });
+  port.onmessage = (e) => {
+    const msg: Message = e.data;
+    store.dispatch(msg);
+  };
+
+  // View
+  const renderer = new SplitRenderer(port);
+  renderer.render(
+    <StoreProvider store={store}>
+      <App />
+    </StoreProvider>
+  );
+});
