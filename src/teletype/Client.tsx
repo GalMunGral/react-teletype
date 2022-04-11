@@ -1,16 +1,21 @@
-import { Message } from "./types";
-import { Mutation } from "./WorkerDOM";
+import type { Message } from "./types";
+import type { Mutation } from "./Teletype";
 
 const nodeMap = new Map();
 
 (async () => {
-  const manifest = await (await fetch("/worker-manifest.json")).json();
-  const worker = new SharedWorker(manifest.path);
-  worker.port.onmessage = (e) => handleMessage(e.data);
-  worker.port.start();
+  const ws = new WebSocket("ws://localhost:8080");
+  console.log("yo");
+  ws.addEventListener("message", (e) => {
+    try {
+      handleMessage(JSON.parse(e.data));
+    } catch (err) {
+      console.log(err, e);
+    }
+  });
 
   function sendMessage(msg: Message) {
-    worker.port.postMessage(msg);
+    ws.send(JSON.stringify(msg));
   }
 
   function handleMessage(msg: Message) {

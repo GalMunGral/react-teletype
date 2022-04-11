@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useReducer } from "react";
-import { Message } from "./types";
+import type { Message } from "./types";
 
 type State = any;
 export type Reducer = (state: State, msg: Message) => State;

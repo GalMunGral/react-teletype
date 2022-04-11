@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import Store, { StoreContext } from "./Store";
+import Store, { StoreContext } from "./Store.js";
 
 type Props = {
   store: Store;

@@ -1,6 +1,6 @@
 import React from "react";
-import { useUpdate } from "../Store";
-import Msg from "./types";
+import { useUpdate } from "./teletype/Store.js";
+import Msg from "./types.js";
 
 const App = () => {
   const state = useUpdate();
@@ -12,7 +12,7 @@ const App = () => {
   return (
     <div style={{ background: `rgb(${R},${G},${B})`, color: "white" }}>
       <div style={{ background: `gray`, color: `rgb(${G},${B},${R})` }}>
-        Hello World + {state.count}
+        Hello World + {state.count}!
       </div>
       <button data-onClick={{ type: Msg.CLICK_TEST }}>click</button>
     </div>

@@ -1,4 +1,5 @@
-export type Message = {
-  type: string;
-  [key: string]: any;
-};
+enum Msg {
+  CLICK_TEST = "CLICK_TEST",
+}
+
+export default Msg;

@@ -1,5 +1,5 @@
 import { HostConfig } from "react-reconciler";
-import { Mutation, SWElement, SWText } from "./WorkerDOM";
+import { Mutation, SWElement, SWText } from "./Teletype.js";
 
 export type CustomHostConfig = HostConfig<
   any,
@@ -67,9 +67,10 @@ function compareProps(
 }
 
 const hostConfig = {
+  supportsMutation: true,
   getRootHostContext(container) {
     return {
-      clientPort: container.clientPort,
+      client: container.client,
     };
   },
   getChildHostContext(parentHostContext) {
@@ -82,13 +83,13 @@ const hostConfig = {
     console.log("TODO: reset text content", node);
   },
   createInstance(type, props, _, hostContext) {
-    const { clientPort } = hostContext;
+    const { client } = hostContext;
     props = resolveProps(props);
-    return new SWElement(type, props, clientPort);
+    return new SWElement(type, props, client);
   },
   createTextInstance(text, _, hostContext) {
-    const { clientPort } = hostContext;
-    return new SWText(text, clientPort);
+    const { client } = hostContext;
+    return new SWText(text, client);
   },
   finalizeInitialChildren() {
     return false;
@@ -119,27 +120,4 @@ const hostConfig = {
   resetAfterCommit() {},
 } as Partial<CustomHostConfig>;
 
-const proxiedHostConfig = new Proxy(hostConfig, {
-  get(target, prop, receiver) {
-    if (Reflect.has(target, prop)) {
-      return Reflect.get(target, prop, receiver);
-    }
-    const funcName = String(prop);
-    const fn = () => {};
-    const fnProxy = new Proxy(fn, {
-      apply(target, thisArg, args) {
-        const retVal = Reflect.apply(target, thisArg, args);
-        console.debug(
-          `(${thisArg})::${funcName}(`,
-          ...args.flatMap((arg, i) => (i > 0 ? [",", arg] : arg)),
-          `) -> `,
-          retVal
-        );
-        return retVal;
-      },
-    });
-    return fnProxy;
-  },
-});
-
-export default proxiedHostConfig;
+export default hostConfig;

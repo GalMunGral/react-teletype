@@ -29,7 +29,9 @@
     "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
+    "@types/ws": "^8.5.3",
     "react": "^17.0.2",
-    "react-reconciler": "^0.26.2"
+    "react-reconciler": "^0.26.2",
+    "ws": "^8.5.0"
   }
 }

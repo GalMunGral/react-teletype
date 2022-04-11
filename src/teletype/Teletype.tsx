@@ -1,4 +1,4 @@
-import { Message } from "./types";
+import type { Message, Socket } from "./types";
 
 export type Mutation =
   | {
@@ -19,15 +19,17 @@ export type Mutation =
 class Teletype {
   static nextId = 0;
   public id = Teletype.nextId++;
-  constructor(private clientPort: MessagePort) {}
+
+  constructor(private client: Socket) {}
+
   protected sendMessage(msg: Message) {
-    this.clientPort.postMessage(msg);
+    this.client.send(msg);
   }
 }
 
 export class SWText extends Teletype {
-  constructor(public text: string, clientPort: MessagePort) {
-    super(clientPort);
+  constructor(public text: string, client: Socket) {
+    super(client);
     this.sendMessage({
       type: "CREATE_TEXT_INSTANCE",
       payload: {
@@ -52,10 +54,10 @@ export class SWElement extends Teletype {
   constructor(
     public type: string,
     public props: Record<string, any>,
-    clientPort: MessagePort,
+    client: Socket,
     public isRoot = false
   ) {
-    super(clientPort);
+    super(client);
     this.sendMessage({
       type: "CREATE_INSTANCE",
       payload: {

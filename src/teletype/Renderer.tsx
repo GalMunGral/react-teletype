@@ -1,16 +1,17 @@
 import { ReactNode } from "react";
 import Reconciler from "react-reconciler";
-import { CustomHostConfig } from "./hostConfig";
-import hostConfig from "./hostConfig";
-import { SWElement } from "./WorkerDOM";
+import { CustomHostConfig } from "./HostConfig.js";
+import hostConfig from "./HostConfig.js";
+import { SWElement } from "./Teletype.js";
+import { Socket } from "./types.js";
 
 const SplitReconcilier = Reconciler(hostConfig as unknown as CustomHostConfig);
 
 class SplitRenderer {
   private container: SWElement;
 
-  constructor(clientPort: MessagePort) {
-    const containerEl = new SWElement("app", {}, clientPort, true);
+  constructor(client: Socket) {
+    const containerEl = new SWElement("app", {}, client, true);
     this.container = SplitReconcilier.createContainer(
       containerEl,
       0,
