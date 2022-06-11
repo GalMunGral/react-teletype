@@ -4,8 +4,8 @@
   "description": "",
   "scripts": {
     "build": "tsc",
-    "start": "node demo.js",
-    "serve": "sleep 1 && cd dist a && nodemon demo.js",
+    "start": "cd build && node demo.js",
+    "serve": "sleep 1 && cd build a && nodemon demo.js",
     "dev": "run-p \"build -- --watch\" serve"
   },
   "repository": {
