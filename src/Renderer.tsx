@@ -23,7 +23,7 @@ function resolveProps(jsxProps: JSXProps): TProps {
   return resolved;
 }
 
-function compareProps(oldJsxProps: JSXProps, newJsxProps: JSXProps) {
+function diffProps(oldJsxProps: JSXProps, newJsxProps: JSXProps) {
   const oldProps = resolveProps(oldJsxProps);
   const newProps = resolveProps(newJsxProps);
   const mutations = new Array<Mutation>();
@@ -113,7 +113,7 @@ const SplitReconcilier = Reconciler<
     container.append(child);
   },
   prepareUpdate(instance, type, oldProps, newProps) {
-    const updatePayload = compareProps(oldProps, newProps);
+    const updatePayload = diffProps(oldProps, newProps);
     return updatePayload.length ? updatePayload : null;
   },
   commitUpdate(instance, updatePayload) {

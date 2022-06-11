@@ -19,7 +19,7 @@ function resolveProps(jsxProps) {
     }
     return resolved;
 }
-function compareProps(oldJsxProps, newJsxProps) {
+function diffProps(oldJsxProps, newJsxProps) {
     const oldProps = resolveProps(oldJsxProps);
     const newProps = resolveProps(newJsxProps);
     const mutations = new Array();
@@ -94,7 +94,7 @@ const SplitReconcilier = (0, react_reconciler_1.default)({
         container.append(child);
     },
     prepareUpdate(instance, type, oldProps, newProps) {
-        const updatePayload = compareProps(oldProps, newProps);
+        const updatePayload = diffProps(oldProps, newProps);
         return updatePayload.length ? updatePayload : null;
     },
     commitUpdate(instance, updatePayload) {
