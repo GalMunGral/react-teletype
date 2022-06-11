@@ -1,7 +1,7 @@
 import http from "http";
 import fs from "fs";
 import path from "path";
-import React, { FC, ReactNode } from "react";
+import React, { ReactNode } from "react";
 import { WebSocketServer } from "ws";
 import { SplitRenderer } from "./Renderer.js";
 import {
@@ -15,7 +15,7 @@ type ServerCommand = any;
 export function startApp(
   rootNode: ReactNode,
   reducer: Reducer<any, any>,
-  port = 8080
+  port = process.env.PORT
 ) {
   const bootstrap = `
     <div id="app"></div>

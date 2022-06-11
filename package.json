@@ -1,23 +1,19 @@
 {
-  "name": "react-split-renderer",
+  "name": "react-teletype",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "start": "node demo.js",
     "serve": "sleep 1 && cd dist a && nodemon demo.js",
     "dev": "run-p \"build -- --watch\" serve"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GalMunGral/react-split-renderer.git"
+    "url": "git+https://github.com/GalMunGral/react-teletype.git"
   },
-  "author": "",
+  "author": "Wenqi He",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/GalMunGral/react-split-renderer/issues"
-  },
-  "homepage": "https://github.com/GalMunGral/react-split-renderer#readme",
   "devDependencies": {
     "@types/react": "^17.0.4",
     "@types/react-reconciler": "^0.26.1",
