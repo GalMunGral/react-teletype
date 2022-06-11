@@ -7,14 +7,13 @@ const ws = new WebSocket(
   `${protocol == "https:" ? "wss" : "ws"}://${hostname}:${port}`
 );
 
-setInterval(() => ws.send(""), 2000); // hack: keep-alive
-
 ws.onopen = () => {
   const key = "USER_ID";
   if (!localStorage.getItem(key)) {
     localStorage.setItem(key, crypto.randomUUID());
   }
   ws.send(localStorage.getItem(key)!);
+  setInterval(() => ws.send(""), 2000); // hack: keep-alive
 };
 
 ws.onmessage = (e) => {
