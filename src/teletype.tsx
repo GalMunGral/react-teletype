@@ -2,8 +2,10 @@ import { ClientCommand } from "./TNode";
 
 type ServerCommand = any;
 
-const { hostname, port } = location;
-const ws = new WebSocket(`ws://${hostname}:${port}`);
+const { protocol, hostname, port } = location;
+const ws = new WebSocket(
+  `${protocol == "https" ? "wss" : "ws"}://${hostname}:${port}`
+);
 const nodeMap = new Map();
 
 ws.onopen = () => {
