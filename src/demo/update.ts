@@ -1,7 +1,7 @@
-import { Reducer } from "./teletype/Store.js";
+import { Reducer } from "../types";
 import Msg from "./types.js";
 
-const update: Reducer = (state: any, msg: any) => {
+const update: Reducer<any> = (state: any, msg: any) => {
   console.log("%cStore received message", "background: blue", msg);
   switch (msg.type) {
     case "INIT":
