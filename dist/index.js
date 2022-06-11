@@ -4,49 +4,57 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startApp = void 0;
-const react_1 = __importDefault(require("react"));
 const http_1 = __importDefault(require("http"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const react_1 = __importDefault(require("react"));
 const ws_1 = require("ws");
 const Renderer_js_1 = require("./Renderer.js");
-const Store_js_1 = require("./Store.js");
-function startApp(App, update, port = 8080) {
+const Session_js_1 = require("./Session.js");
+function startApp(rootNode, reducer, port = 8080) {
+    const bootstrap = `
+    <div id="app"></div>
+      <script>window.exports = {};</script>
+    <script src="/teletype.js"></script>
+  `;
     const server = http_1.default
         .createServer((req, res) => {
         if (!req.url)
             res.end();
         if (/\.js$/.test(req.url)) {
             res.setHeader("Content-Type", "application/javascript");
-            res.end(fs_1.default.readFileSync(path_1.default.join(__dirname, req.url)));
-            return;
+            fs_1.default.createReadStream(path_1.default.join(__dirname, req.url)).pipe(res);
         }
-        res.end(`
-        <div id="app"></div>
-        <script>window.exports = {};</script>
-        <script src="/teletype.js"></script>
-    `);
+        else {
+            res.end(bootstrap);
+        }
     })
         .listen(port, () => {
         console.log(`listening on ${port}`);
     });
+    const sessions = new Map();
+    function getSession(userId) {
+        if (!sessions.has(userId)) {
+            const s = new Session_js_1.Session(reducer);
+            s.dispatch({ type: "INIT" });
+            sessions.set(userId, s);
+        }
+        return sessions.get(userId);
+    }
     const wss = new ws_1.WebSocketServer({ server });
     wss.on("connection", (client) => {
-        // Model - Update
-        const store = new Store_js_1.Store(update);
-        store.dispatch({ type: "INIT" });
-        client.on("message", (data) => {
-            store.dispatch(JSON.parse(data.toString("utf-8")));
-        });
-        // View
-        const renderer = new Renderer_js_1.SplitRenderer({
-            send(message) {
-                client.send(JSON.stringify(message));
-            },
-        });
-        renderer.render(react_1.default.createElement(Store_js_1.StoreProvider, { store: store },
-            react_1.default.createElement(App, null)));
-        client.send(JSON.stringify("connect"));
+        client.onmessage = (e) => {
+            const userId = String(e.data);
+            const session = getSession(userId);
+            new Renderer_js_1.SplitRenderer({
+                send(message) {
+                    client.send(JSON.stringify(message));
+                },
+            }).render(react_1.default.createElement(Session_js_1.SessionContext.Provider, { value: session }, rootNode));
+            client.onmessage = (e) => {
+                session.dispatch(JSON.parse(String(e.data)));
+            };
+        };
     });
 }
 exports.startApp = startApp;

@@ -1,21 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const nodeMap = new Map();
 const { hostname, port } = location;
 const ws = new WebSocket(`ws://${hostname}:${port}`);
-ws.addEventListener("message", (e) => {
+const nodeMap = new Map();
+ws.onopen = () => {
+    const key = "USER_ID";
+    if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, crypto.randomUUID());
+    }
+    ws.send(localStorage.getItem(key));
+};
+ws.onmessage = (e) => {
     try {
         handleMessage(JSON.parse(e.data));
     }
     catch (err) {
         console.log(err, e);
     }
-});
+};
 function sendMessage(msg) {
     ws.send(JSON.stringify(msg));
 }
 function handleMessage(msg) {
-    console.log("%cWindowClient received message", "background: green", msg);
     switch (msg.type) {
         case "CREATE_TEXT_INSTANCE": {
             const { id, text } = msg.payload;

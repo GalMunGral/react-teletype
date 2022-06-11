@@ -1,5 +1,14 @@
-enum Msg {
-  CLICK_TEST = "CLICK_TEST",
-}
+export type State = {
+  r: number;
+  g: number;
+  b: number;
+  count: number;
+};
 
-export default Msg;
+export type Message =
+  | {
+      type: "INCREMENT";
+    }
+  | {
+      type: "INIT";
+    };

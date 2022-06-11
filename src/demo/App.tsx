@@ -1,20 +1,43 @@
 import React from "react";
-import { useUpdate } from "../Store.js";
-import Msg from "./types.js";
+import { useSession } from "../Session.js";
+import { Message, State } from "./types.js";
 
 const App = () => {
-  const state = useUpdate();
-
-  const R = Math.floor(Math.random() * 255);
-  const G = Math.floor(Math.random() * 255);
-  const B = Math.floor(Math.random() * 255);
-
+  const { r, g, b, count } = useSession<State>();
   return (
-    <div style={{ background: `rgb(${R},${G},${B})`, color: "white" }}>
-      <div style={{ background: `gray`, color: `rgb(${G},${B},${R})` }}>
-        Hello World + {state.count}!
+    <div
+      style={{
+        margin: "auto",
+        width: 300,
+        background: `rgb(${r},${g},${b}, 0.2)`,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          height: 300,
+          background: `rgb(${r},${g},${b},0.8)`,
+          lineHeight: "300px",
+          fontSize: 20,
+          textAlign: "center",
+          fontFamily: "monospace",
+          fontWeight: 800,
+          color: "white",
+        }}
+      >
+        Hello World + {count}
       </div>
-      <button data-click={{ type: Msg.CLICK_TEST }}>click</button>
+      <button
+        style={{
+          width: "100%",
+          background: "white",
+          fontFamily: "monospace",
+          fontSize: 20,
+        }}
+        data-click={{ type: "INCREMENT" } as Message}
+      >
+        click
+      </button>
     </div>
   );
 };

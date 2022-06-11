@@ -1,63 +1,12 @@
 import Reconciler from "react-reconciler";
 import { ReactNode } from "react";
-import type { Socket } from "./types";
-import { Mutation, TElement, TEvents, TProps, TText } from "./TNode";
+import { Mutation, Socket, TElement, TEvents, TProps, TText } from "./TNode";
 
 type JSXProps<ModelCommand = any> = {
   style: CSSStyleDeclaration;
   children: ReactNode;
   [event: `data-${any}`]: ModelCommand;
 };
-
-function resolveProps(jsxProps: JSXProps): TProps {
-  const resolved: TProps = { style: {}, events: {} };
-  if (typeof jsxProps["children"] == "string") {
-    resolved["textContent"] = jsxProps["children"];
-  }
-  resolved["style"] = jsxProps["style"];
-  for (let event of TEvents) {
-    if (jsxProps.hasOwnProperty("data-" + event)) {
-      resolved.events[event] = jsxProps[("data-" + event) as `data-${any}`];
-    }
-  }
-  return resolved;
-}
-
-function diffProps(oldJsxProps: JSXProps, newJsxProps: JSXProps) {
-  const oldProps = resolveProps(oldJsxProps);
-  const newProps = resolveProps(newJsxProps);
-  const mutations = new Array<Mutation>();
-  const oldStyle = oldProps["style"] ?? {};
-  const newStyle = newProps["style"] ?? {};
-  Object.entries(newStyle).forEach(([property, value]) => {
-    if (newStyle[property as any] !== oldStyle[property as any]) {
-      mutations.push({
-        type: "SET_STYLE",
-        property,
-        value,
-      });
-    }
-  });
-  Object.keys(oldStyle).forEach((property) => {
-    if (!(property in newStyle)) {
-      mutations.push({
-        type: "SET_STYLE",
-        property,
-        value: undefined,
-      });
-    }
-  });
-  for (let e of TEvents) {
-    if (newProps.events[e] !== oldProps.events[e]) {
-      mutations.push({
-        type: "SET_EVENT",
-        event: e,
-        message: newProps.events[e],
-      });
-    }
-  }
-  return mutations;
-}
 
 const SplitReconcilier = Reconciler<
   string,
@@ -92,7 +41,7 @@ const SplitReconcilier = Reconciler<
     throw new Error("Function not implemented.");
   },
   createInstance(type, props, _, { client }) {
-    return new TElement(type, resolveProps(props), client);
+    return new TElement(type, normalizeProps(props), client);
   },
   createTextInstance(text, _, { client }) {
     return new TText(text, client);
@@ -155,4 +104,54 @@ export class SplitRenderer {
   render(node: ReactNode) {
     SplitReconcilier.updateContainer(node, this.container, null, () => {});
   }
+}
+
+function normalizeProps(jsxProps: JSXProps): TProps {
+  const resolved: TProps = { style: {}, events: {} };
+  if (typeof jsxProps["children"] == "string") {
+    resolved["textContent"] = jsxProps["children"];
+  }
+  resolved["style"] = jsxProps["style"];
+  for (let event of TEvents) {
+    if (jsxProps.hasOwnProperty("data-" + event)) {
+      resolved.events[event] = jsxProps[("data-" + event) as `data-${any}`];
+    }
+  }
+  return resolved;
+}
+
+function diffProps(oldJsxProps: JSXProps, newJsxProps: JSXProps) {
+  const oldProps = normalizeProps(oldJsxProps);
+  const newProps = normalizeProps(newJsxProps);
+  const mutations = new Array<Mutation>();
+  const oldStyle = oldProps["style"] ?? {};
+  const newStyle = newProps["style"] ?? {};
+  Object.entries(newStyle).forEach(([property, value]) => {
+    if (newStyle[property as any] !== oldStyle[property as any]) {
+      mutations.push({
+        type: "SET_STYLE",
+        property,
+        value,
+      });
+    }
+  });
+  Object.keys(oldStyle).forEach((property) => {
+    if (!(property in newStyle)) {
+      mutations.push({
+        type: "SET_STYLE",
+        property,
+        value: undefined,
+      });
+    }
+  });
+  for (let e of TEvents) {
+    if (newProps.events[e] !== oldProps.events[e]) {
+      mutations.push({
+        type: "SET_EVENT",
+        event: e,
+        message: newProps.events[e],
+      });
+    }
+  }
+  return mutations;
 }

@@ -1,5 +1,3 @@
-import type { ServerCommand, Socket } from "./types";
-
 export const TEvents = ["click"] as const;
 export type TEvent = typeof TEvents[number];
 export type TStyleDeclaration = { [key: string]: any };
@@ -8,6 +6,15 @@ export type TProps = {
   textContent?: string;
   style: TStyleDeclaration;
   events: Partial<Record<TEvent, ServerCommand>>;
+};
+
+export type Socket = {
+  send(data: ServerCommand): void;
+};
+
+export type ServerCommand = {
+  type: string;
+  payload?: any;
 };
 
 export type Mutation =

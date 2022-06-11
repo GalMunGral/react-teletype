@@ -23,38 +23,33 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.useUpdate = exports.StoreContext = exports.AppState = void 0;
+exports.useSession = exports.SessionContext = exports.Session = void 0;
 const react_1 = __importStar(require("react"));
-class AppState {
-    update;
+class Session {
+    reducer;
     state = null;
     observers = new Array();
-    constructor(update) {
-        this.update = update;
+    constructor(reducer) {
+        this.reducer = reducer;
     }
     dispatch(msg) {
-        this.state = this.update(this.state, msg);
+        this.state = this.reducer(this.state, msg);
         this.observers.forEach((obs) => obs(this.state));
     }
     subscribe(observer) {
         this.observers.push(observer);
     }
 }
-exports.AppState = AppState;
-exports.StoreContext = react_1.default.createContext(null);
-const useUpdate = () => {
+exports.Session = Session;
+exports.SessionContext = react_1.default.createContext(null);
+function useSession() {
     const [, forceUpdate] = (0, react_1.useReducer)((s) => s + 1, 0);
-    const store = (0, react_1.useContext)(exports.StoreContext);
-    if (!store) {
-        console.error("Cannot find StoreContext");
-        return;
-    }
+    const session = (0, react_1.useContext)(exports.SessionContext);
+    if (!session)
+        throw "There is no SessionContext";
     (0, react_1.useEffect)(() => {
-        store.subscribe((state) => {
-            console.debug("Component received state update:", state);
-            forceUpdate();
-        });
+        session.subscribe(() => forceUpdate());
     }, []);
-    return store.state;
-};
-exports.useUpdate = useUpdate;
+    return session.state;
+}
+exports.useSession = useSession;

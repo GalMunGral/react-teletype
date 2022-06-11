@@ -1,54 +1,71 @@
-import React, { FC } from "react";
 import http from "http";
 import fs from "fs";
 import path from "path";
+import React, { FC, ReactNode } from "react";
 import { WebSocketServer } from "ws";
 import { SplitRenderer } from "./Renderer.js";
-import { Store, StoreProvider } from "./Store.js";
-import { ServerCommand, Reducer } from "./types.js";
+import {
+  Session,
+  Reducer,
+  SessionContext as SessionContext,
+} from "./Session.js";
 
-export function startApp(App: FC, update: Reducer<any>, port = 8080) {
+type ServerCommand = any;
+
+export function startApp(
+  rootNode: ReactNode,
+  reducer: Reducer<any, any>,
+  port = 8080
+) {
+  const bootstrap = `
+    <div id="app"></div>
+      <script>window.exports = {};</script>
+    <script src="/teletype.js"></script>
+  `;
+
   const server = http
     .createServer((req, res) => {
       if (!req.url) res.end();
       if (/\.js$/.test(req.url!)) {
         res.setHeader("Content-Type", "application/javascript");
-        res.end(fs.readFileSync(path.join(__dirname, req.url!)));
-        return;
+        fs.createReadStream(path.join(__dirname, req.url!)).pipe(res);
+      } else {
+        res.end(bootstrap);
       }
-      res.end(`
-        <div id="app"></div>
-        <script>window.exports = {};</script>
-        <script src="/teletype.js"></script>
-    `);
     })
     .listen(port, () => {
       console.log(`listening on ${port}`);
     });
 
+  const sessions = new Map<string, Session>();
+  function getSession(userId: string): Session {
+    if (!sessions.has(userId)) {
+      const s = new Session(reducer);
+      s.dispatch({ type: "INIT" });
+      sessions.set(userId, s);
+    }
+    return sessions.get(userId)!;
+  }
+
   const wss = new WebSocketServer({ server });
-
   wss.on("connection", (client) => {
-    // Model - Update
-    const store = new Store(update);
-    store.dispatch({ type: "INIT" });
+    client.onmessage = (e) => {
+      const userId = String(e.data);
+      const session = getSession(userId);
 
-    client.on("message", (data) => {
-      store.dispatch(JSON.parse(data.toString("utf-8")));
-    });
+      new SplitRenderer({
+        send(message: ServerCommand) {
+          client.send(JSON.stringify(message));
+        },
+      }).render(
+        <SessionContext.Provider value={session}>
+          {rootNode}
+        </SessionContext.Provider>
+      );
 
-    // View
-    const renderer = new SplitRenderer({
-      send(message: ServerCommand) {
-        client.send(JSON.stringify(message));
-      },
-    });
-    renderer.render(
-      <StoreProvider store={store}>
-        <App />
-      </StoreProvider>
-    );
-
-    client.send(JSON.stringify("connect"));
+      client.onmessage = (e) => {
+        session.dispatch(JSON.parse(String(e.data)));
+      };
+    };
   });
 }

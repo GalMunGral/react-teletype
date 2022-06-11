@@ -1,26 +1,32 @@
-import type { ServerCommand } from "./types";
 import { ClientCommand } from "./TNode";
 
-const nodeMap = new Map();
+type ServerCommand = any;
 
 const { hostname, port } = location;
 const ws = new WebSocket(`ws://${hostname}:${port}`);
+const nodeMap = new Map();
 
-ws.addEventListener("message", (e) => {
+ws.onopen = () => {
+  const key = "USER_ID";
+  if (!localStorage.getItem(key)) {
+    localStorage.setItem(key, crypto.randomUUID());
+  }
+  ws.send(localStorage.getItem(key)!);
+};
+
+ws.onmessage = (e) => {
   try {
     handleMessage(JSON.parse(e.data));
   } catch (err) {
     console.log(err, e);
   }
-});
+};
 
 function sendMessage(msg: ServerCommand) {
   ws.send(JSON.stringify(msg));
 }
 
 function handleMessage(msg: ClientCommand) {
-  console.log("%cWindowClient received message", "background: green", msg);
-
   switch (msg.type) {
     case "CREATE_TEXT_INSTANCE": {
       const { id, text } = msg.payload;
