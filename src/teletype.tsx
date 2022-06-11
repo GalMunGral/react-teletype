@@ -4,7 +4,7 @@ type ServerCommand = any;
 
 const { protocol, hostname, port } = location;
 const ws = new WebSocket(
-  `${protocol == "https" ? "wss" : "ws"}://${hostname}:${port}`
+  `${protocol == "https:" ? "wss" : "ws"}://${hostname}:${port}`
 );
 const nodeMap = new Map();
 
