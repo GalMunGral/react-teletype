@@ -64,7 +64,13 @@ export function startApp(
       );
 
       client.onmessage = (e) => {
-        session.dispatch(JSON.parse(String(e.data)));
+        const s = String(e.data);
+        if (!s.length) return;
+        try {
+          session.dispatch(JSON.parse(s));
+        } catch (e) {
+          console.log(e);
+        }
       };
     };
   });

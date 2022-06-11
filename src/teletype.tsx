@@ -6,7 +6,8 @@ const { protocol, hostname, port } = location;
 const ws = new WebSocket(
   `${protocol == "https:" ? "wss" : "ws"}://${hostname}:${port}`
 );
-const nodeMap = new Map();
+
+setInterval(() => ws.send(""), 2000); // hack: keep-alive
 
 ws.onopen = () => {
   const key = "USER_ID";
@@ -27,6 +28,8 @@ ws.onmessage = (e) => {
 function sendMessage(msg: ServerCommand) {
   ws.send(JSON.stringify(msg));
 }
+
+const nodeMap = new Map();
 
 function handleMessage(msg: ClientCommand) {
   switch (msg.type) {
