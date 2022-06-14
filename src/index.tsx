@@ -8,7 +8,7 @@ import {
   Session,
   Reducer,
   SessionContext as SessionContext,
-} from "./Session.js";
+} from "./session.js";
 
 type ServerCommand = any;
 

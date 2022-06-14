@@ -36,7 +36,7 @@ function eventWrapper(
 ): (e: Event) => void {
   return (e: Event) => {
     if (eventName == "dragstart") {
-      (e as DragEvent).dataTransfer?.setDragImage(dragImage, 0, 0);
+      (e as DragEvent).dataTransfer!.setDragImage(dragImage, 0, 0);
     }
     ws.send(
       JSON.stringify({
@@ -52,11 +52,18 @@ function eventWrapper(
 }
 
 const nodeMap = new Map<number, Node>();
+
+document.body.ondragover = (e) => {
+  e.dataTransfer!.dropEffect = "move";
+  e.preventDefault();
+};
+document.body.ondrop = (e) => {
+  e.preventDefault();
+};
 const dragImage = document.createElement("div");
 dragImage.style.height = "100px";
 dragImage.style.width = "100px";
 dragImage.style.position = "fixed";
-dragImage.style.background = "red";
 dragImage.style.top = "0";
 dragImage.style.left = "-100px";
 document.body.append(dragImage);

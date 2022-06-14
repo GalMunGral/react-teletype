@@ -1,5 +1,5 @@
 import React from "react";
-import { useSession } from "../Session.js";
+import { useSession } from "../session.js";
 import { ServerCommand } from "../TNode.js";
 import { Message, State } from "./types.js";
 
