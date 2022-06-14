@@ -1,60 +1,82 @@
-export const TEvents = ["click"] as const;
-export type TEvent = typeof TEvents[number];
-export type TStyleDeclaration = { [key: string]: any };
-
-export type TProps = {
-  textContent?: string;
-  style: TStyleDeclaration;
-  events: Partial<Record<TEvent, ServerCommand>>;
-};
-
-export type Socket = {
-  send(data: ServerCommand): void;
+export type TStyleDeclaration = {
+  [name in Exclude<keyof CSSStyleDeclaration, "length" | "parentRule">]?:
+    | string
+    | number
+    | undefined;
 };
 
 export type ServerCommand = {
   type: string;
-  payload?: any;
+  args?: any;
 };
+
+export type SynthesizedServerCommand = ServerCommand & {
+  checked: boolean;
+  value: string;
+  clientX: number;
+  clientY: number;
+  key: string;
+  // todo
+};
+
+export interface TEventDeclaration {
+  click?: ServerCommand;
+  dragstart?: ServerCommand;
+  drag?: ServerCommand;
+  dragend?: ServerCommand;
+  drop?: ServerCommand;
+}
+
+export interface TNodeProperties {
+  draggable?: boolean;
+  value?: string;
+  // todo
+}
+
+export class TProps {
+  public style: TStyleDeclaration = {};
+  public events: TEventDeclaration = {};
+  public properties: TNodeProperties = {};
+}
 
 export type Mutation =
   | {
-      type: "SET_TEXT";
-      text: string;
-    }
-  | {
       type: "SET_STYLE";
-      property: string;
-      value: any;
+      name: keyof TStyleDeclaration;
+      value: ValueOf<TStyleDeclaration>;
     }
   | {
       type: "SET_EVENT";
-      event: TEvent;
-      message: ServerCommand | undefined;
+      name: keyof TEventDeclaration;
+      value: ValueOf<TEventDeclaration>;
+    }
+  | {
+      type: "SET_PROP";
+      name: keyof TNodeProperties;
+      value: ValueOf<TNodeProperties>;
     };
 
 export type ClientCommand =
   | {
       type: "CREATE_TEXT_INSTANCE";
-      payload: {
+      args: {
         id: number;
         text: string;
-        props?: object;
-      };
-    }
-  | {
-      type: "CREATE_INSTANCE";
-      payload: {
-        id: number;
-        type: string;
-        props: TProps | null;
       };
     }
   | {
       type: "UPDATE_TEXT";
-      payload: {
+      args: {
         id: number;
         text: string;
+      };
+    }
+  | {
+      type: "CREATE_INSTANCE";
+      args: {
+        id: number;
+        type: string;
+        props: TProps | null;
       };
     }
   | {
@@ -65,21 +87,38 @@ export type ClientCommand =
       };
     }
   | {
+      type: "CLEAR_CONTAINER";
+    }
+  | {
+      type: "APPEND_CHILD_TO_CONTAINER";
+      args: {
+        childId: number;
+      };
+    }
+  | {
+      type: "REMOVE_CHILD_FROM_CONTAINER";
+      args: {
+        childId: number;
+      };
+    }
+  | {
       type: "APPEND_CHILD";
-      payload: {
+      args: {
         parentId: number;
         childId: number;
       };
     }
   | {
-      type: "CLEAR_CONTAINER";
-    }
-  | {
-      type: "APPEND_CHILD_TO_CONTAINER";
-      payload: {
+      type: "REMOVE_CHILD";
+      args: {
+        parentId: number;
         childId: number;
       };
     };
+
+export interface Socket {
+  send(data: ServerCommand): void;
+}
 
 export class TNode {
   static nextId = 0;
@@ -90,21 +129,55 @@ export class TNode {
   }
 }
 
+export class TContainer extends TNode {
+  public children = new Array<TNode>();
+
+  constructor(client: Socket) {
+    super(client);
+  }
+
+  public clear() {
+    this.children = [];
+    this.sendMessage({
+      type: "CLEAR_CONTAINER",
+    });
+  }
+  public append(child: TNode) {
+    this.children.push(child);
+    this.sendMessage({
+      type: "APPEND_CHILD_TO_CONTAINER",
+      args: {
+        childId: child.id,
+      },
+    });
+  }
+  public remove(child: TNode) {
+    this.children = this.children.filter((c) => c != child);
+    this.sendMessage({
+      type: "REMOVE_CHILD_FROM_CONTAINER",
+      args: {
+        childId: child.id,
+      },
+    });
+  }
+}
+
 export class TText extends TNode {
   constructor(public text: string, client: Socket) {
     super(client);
     this.sendMessage({
       type: "CREATE_TEXT_INSTANCE",
-      payload: {
+      args: {
         id: this.id,
         text,
       },
     });
   }
+
   public update(newText: string) {
     this.sendMessage({
       type: "UPDATE_TEXT",
-      payload: {
+      args: {
         id: this.id,
         text: newText,
       },
@@ -113,19 +186,13 @@ export class TText extends TNode {
 }
 
 export class TElement extends TNode {
-  public props: TProps = { style: {}, events: {} };
   public children = new Array<TNode>();
-  constructor(
-    public type: string,
-    props: TProps | null,
-    client: Socket,
-    public isRoot = false
-  ) {
+
+  constructor(public type: string, public props: TProps, client: Socket) {
     super(client);
-    if (props) this.props = props;
     this.sendMessage({
       type: "CREATE_INSTANCE",
-      payload: {
+      args: {
         id: this.id,
         type,
         props,
@@ -133,43 +200,24 @@ export class TElement extends TNode {
     });
   }
 
-  public clear() {
-    if (!this.isRoot) {
-      console.warn("This is not a container");
-    }
-    this.children = [];
-    this.props = { style: {}, events: {} };
-    this.sendMessage({
-      type: "CLEAR_CONTAINER",
-    });
-  }
-
-  public append(child: TNode) {
-    this.children.push(child);
-    if (this.isRoot) {
-      this.sendMessage({
-        type: "APPEND_CHILD_TO_CONTAINER",
-        payload: { childId: child.id },
-      });
-    } else {
-      this.sendMessage({
-        type: "APPEND_CHILD",
-        payload: { parentId: this.id, childId: child.id },
-      });
-    }
-  }
-
   public update(mutations: Array<Mutation>) {
     mutations.forEach((mutation) => {
       switch (mutation.type) {
-        case "SET_STYLE":
-          const { property, value } = mutation;
-          this.props.style[property] = value;
+        case "SET_STYLE": {
+          const { name, value } = mutation;
+          this.props.style[name] = value;
           break;
-        case "SET_EVENT":
-          const { event, message } = mutation;
-          this.props.events[event] = message;
+        }
+        case "SET_EVENT": {
+          const { name, value } = mutation;
+          this.props.events[name] = value;
           break;
+        }
+        case "SET_PROP": {
+          const { name, value } = mutation;
+          (this.props.properties[name] as any) = value;
+          break;
+        }
       }
     });
     this.sendMessage({
@@ -177,6 +225,28 @@ export class TElement extends TNode {
       payload: {
         id: this.id,
         mutations,
+      },
+    });
+  }
+
+  public append(child: TNode) {
+    this.children.push(child);
+    this.sendMessage({
+      type: "APPEND_CHILD",
+      args: {
+        parentId: this.id,
+        childId: child.id,
+      },
+    });
+  }
+
+  public remove(child: TNode) {
+    this.children = this.children.filter((c) => c != child);
+    this.sendMessage({
+      type: "REMOVE_CHILD",
+      args: {
+        parentId: this.id,
+        childId: child.id,
       },
     });
   }

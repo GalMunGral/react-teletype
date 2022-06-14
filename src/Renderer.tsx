@@ -1,24 +1,133 @@
 import Reconciler from "react-reconciler";
 import { ReactNode } from "react";
-import { Mutation, Socket, TElement, TEvents, TProps, TText } from "./TNode";
+import {
+  Mutation,
+  ServerCommand,
+  Socket,
+  TContainer,
+  TElement,
+  TEventDeclaration,
+  TNode,
+  TProps,
+  TStyleDeclaration,
+  TText,
+} from "./TNode";
 
-type JSXProps<ModelCommand = any> = {
-  style: CSSStyleDeclaration;
-  children: ReactNode;
-  [event: `data-${any}`]: ModelCommand;
+type JSXProps = {
+  style?: TStyleDeclaration;
+  draggable?: boolean;
+  value: string;
+  "data-onclick": ServerCommand;
+  "data-ondragstart": ServerCommand;
+  "data-ondrag": ServerCommand;
+  "data-ondragend": ServerCommand;
+  "data-ondrop": ServerCommand;
 };
+
+function normalizeProps(jsxProps: JSXProps): TProps {
+  const resolved = new TProps();
+  (Object.keys(jsxProps) as KeysOf<JSXProps>).forEach((key) => {
+    switch (key) {
+      case "draggable": {
+        resolved.properties[key] = jsxProps.draggable;
+        break;
+      }
+      case "value": {
+        resolved.properties[key] = jsxProps.value;
+        break;
+      }
+      case "style": {
+        resolved.style = jsxProps.style!;
+        break;
+      }
+      case "data-onclick":
+      case "data-ondrag":
+      case "data-ondragstart":
+      case "data-ondragend":
+      case "data-ondrop": {
+        const event = key.slice(7) as keyof TEventDeclaration;
+        resolved.events[event] = jsxProps[key];
+        break;
+      }
+    }
+  });
+  return resolved;
+}
+
+function diffProps(oldJsxProps: JSXProps, newJsxProps: JSXProps) {
+  const mutations = new Array<Mutation>();
+
+  (Object.keys(newJsxProps) as KeysOf<JSXProps>).forEach((key) => {
+    switch (key) {
+      case "draggable":
+      case "value": {
+        if (newJsxProps[key] !== oldJsxProps[key])
+          mutations.push({
+            type: "SET_PROP",
+            name: key,
+            value: newJsxProps[key],
+          });
+        break;
+      }
+      case "style": {
+        const newStyle = newJsxProps.style!;
+        const oldStyle = oldJsxProps.style!;
+        (Object.keys(newStyle) as KeysOf<TStyleDeclaration>).forEach((name) => {
+          if (newStyle[name] !== oldStyle[name]) {
+            mutations.push({
+              type: "SET_STYLE",
+              name,
+              value: newStyle[name],
+            });
+          }
+        });
+        (Object.keys(oldStyle) as KeysOf<TStyleDeclaration>).forEach((name) => {
+          if (!(name in newStyle)) {
+            mutations.push({
+              type: "SET_STYLE",
+              name,
+              value: undefined,
+            });
+          }
+        });
+        break;
+      }
+      case "data-ondrag":
+      case "data-ondragstart":
+      case "data-ondragend":
+      case "data-ondrop": {
+        if (newJsxProps[key] != oldJsxProps[key]) {
+          mutations.push({
+            type: "SET_EVENT",
+            name: key.slice(7) as keyof TEventDeclaration,
+            value: newJsxProps[key],
+          });
+        }
+        break;
+      }
+    }
+  });
+
+  return mutations;
+}
+
+type UpdatePayload = Array<Mutation>;
+
+interface HostContext {
+  client: Socket;
+}
 
 const SplitReconcilier = Reconciler<
   string,
   JSXProps,
-  TElement,
+  TContainer,
   TElement,
   TText,
+  TNode, // not sure
   unknown,
   unknown,
-  unknown,
-  { client: Socket },
-  Array<Mutation>,
+  HostContext,
+  UpdatePayload,
   unknown,
   unknown,
   unknown
@@ -34,8 +143,8 @@ const SplitReconcilier = Reconciler<
   getChildHostContext(parentHostContext) {
     return parentHostContext;
   },
-  shouldSetTextContent(_, { children }) {
-    return typeof children == "string";
+  shouldSetTextContent() {
+    return false;
   },
   resetTextContent() {
     throw new Error("Function not implemented.");
@@ -58,8 +167,17 @@ const SplitReconcilier = Reconciler<
   clearContainer(container) {
     container.clear();
   },
+  appendChild(parent, child) {
+    parent.append(child);
+  },
   appendChildToContainer(container, child) {
     container.append(child);
+  },
+  removeChild(parent, child) {
+    parent.remove(child);
+  },
+  removeChildFromContainer(container, child) {
+    container.remove(child);
   },
   prepareUpdate(instance, type, oldProps, newProps) {
     const updatePayload = diffProps(oldProps, newProps);
@@ -95,7 +213,7 @@ export class SplitRenderer {
   private container: TElement;
   constructor(client: Socket) {
     this.container = SplitReconcilier.createContainer(
-      new TElement("app", null, client, true),
+      new TContainer(client),
       0,
       false,
       null
@@ -104,54 +222,4 @@ export class SplitRenderer {
   render(node: ReactNode) {
     SplitReconcilier.updateContainer(node, this.container, null, () => {});
   }
-}
-
-function normalizeProps(jsxProps: JSXProps): TProps {
-  const resolved: TProps = { style: {}, events: {} };
-  if (typeof jsxProps["children"] == "string") {
-    resolved["textContent"] = jsxProps["children"];
-  }
-  resolved["style"] = jsxProps["style"];
-  for (let event of TEvents) {
-    if (jsxProps.hasOwnProperty("data-" + event)) {
-      resolved.events[event] = jsxProps[("data-" + event) as `data-${any}`];
-    }
-  }
-  return resolved;
-}
-
-function diffProps(oldJsxProps: JSXProps, newJsxProps: JSXProps) {
-  const oldProps = normalizeProps(oldJsxProps);
-  const newProps = normalizeProps(newJsxProps);
-  const mutations = new Array<Mutation>();
-  const oldStyle = oldProps["style"] ?? {};
-  const newStyle = newProps["style"] ?? {};
-  Object.entries(newStyle).forEach(([property, value]) => {
-    if (newStyle[property as any] !== oldStyle[property as any]) {
-      mutations.push({
-        type: "SET_STYLE",
-        property,
-        value,
-      });
-    }
-  });
-  Object.keys(oldStyle).forEach((property) => {
-    if (!(property in newStyle)) {
-      mutations.push({
-        type: "SET_STYLE",
-        property,
-        value: undefined,
-      });
-    }
-  });
-  for (let e of TEvents) {
-    if (newProps.events[e] !== oldProps.events[e]) {
-      mutations.push({
-        type: "SET_EVENT",
-        event: e,
-        message: newProps.events[e],
-      });
-    }
-  }
-  return mutations;
 }

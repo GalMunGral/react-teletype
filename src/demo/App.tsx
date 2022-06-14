@@ -1,11 +1,13 @@
 import React from "react";
 import { useSession } from "../Session.js";
+import { ServerCommand } from "../TNode.js";
 import { Message, State } from "./types.js";
 
 const App = () => {
   const { r, g, b, count } = useSession<State>();
   return (
     <div
+      draggable
       style={{
         margin: "auto",
         width: 300,
@@ -34,9 +36,10 @@ const App = () => {
           fontFamily: "monospace",
           fontSize: 20,
         }}
-        data-click={{ type: "INCREMENT" } as Message}
+        data-dragstart={{ type: "DRAG" } as ServerCommand}
+        data-onclick={{ type: "INCREMENT" } as ServerCommand}
       >
-        click
+        {r & 1 ? "click" : <div>yo</div>}
       </button>
     </div>
   );

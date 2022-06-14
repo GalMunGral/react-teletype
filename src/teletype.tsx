@@ -1,4 +1,10 @@
-import { ClientCommand } from "./TNode";
+import {
+  ClientCommand,
+  SynthesizedServerCommand,
+  TEventDeclaration,
+  TNodeProperties,
+  TStyleDeclaration,
+} from "./TNode";
 
 type ServerCommand = any;
 
@@ -24,48 +30,93 @@ ws.onmessage = (e) => {
   }
 };
 
-function sendMessage(msg: ServerCommand) {
+function extend(cmd: ServerCommand, e: Event): SynthesizedServerCommand {
+  return {
+    ...cmd,
+    clientX: e instanceof MouseEvent ? e.clientX : 0,
+    clientY: e instanceof MouseEvent ? e.clientY : 0,
+    key: e instanceof KeyboardEvent ? e.key : "",
+    value: e instanceof HTMLInputElement ? e.value : "",
+    checked: e instanceof HTMLInputElement ? e.checked : false,
+  };
+}
+function sendMessage(msg: SynthesizedServerCommand) {
   ws.send(JSON.stringify(msg));
 }
 
-const nodeMap = new Map();
+const nodeMap = new Map<number, Node>();
 
 function handleMessage(msg: ClientCommand) {
   switch (msg.type) {
     case "CREATE_TEXT_INSTANCE": {
-      const { id, text } = msg.payload;
+      const { id, text } = msg.args;
       const textNode = new Text(text);
       nodeMap.set(id, textNode);
       break;
     }
+
+    case "UPDATE_TEXT": {
+      const { id, text } = msg.args;
+      const textNode = nodeMap.get(id) as Text;
+      textNode.textContent = text;
+      break;
+    }
+
     case "CREATE_INSTANCE": {
-      const { id, type, props } = msg.payload;
+      const { id, type, props } = msg.args;
       const el = document.createElement(type);
       if (props) {
-        if (props.textContent) {
-          el.textContent = props.textContent;
+        for (const [name, value] of Object.entries(
+          props.properties
+        ) as EntriesOf<TNodeProperties>) {
+          (el as any)[name] = value;
         }
-        if (props.style) {
-          Object.entries(props.style).forEach(([name, value]) => {
-            el.style[name as any] = value;
-          });
+
+        for (const [name, value] of Object.entries(
+          props.style
+        ) as EntriesOf<TStyleDeclaration>) {
+          (el.style[name] as any) = value;
         }
-        if (props.events) {
-          for (let [event, msg] of Object.entries(props.events)) {
-            (el as any)["on" + event] = () => sendMessage(msg);
-          }
+
+        for (const [event, value] of Object.entries(
+          props.events
+        ) as EntriesOf<TEventDeclaration>) {
+          (el as any)["on" + event] = value
+            ? (e: Event) => sendMessage(extend(value, e))
+            : undefined;
         }
       }
       nodeMap.set(id, el);
       break;
     }
-    case "APPEND_CHILD": {
-      const { parentId, childId } = msg.payload;
-      const parentEl = nodeMap.get(parentId);
-      const childEl = nodeMap.get(childId);
-      parentEl.append(childEl);
+
+    case "UPDATE": {
+      const { id, mutations } = msg.payload;
+      const el = nodeMap.get(id)!;
+      mutations.forEach((mutation) => {
+        switch (mutation.type) {
+          case "SET_PROP": {
+            const { name, value } = mutation;
+            (el as any)[name] = value;
+            break;
+          }
+          case "SET_STYLE": {
+            const { name, value } = mutation;
+            ((el as HTMLElement).style[name] as any) = value;
+            break;
+          }
+          case "SET_EVENT": {
+            const { name, value } = mutation;
+            (el as any)["on" + name] = value
+              ? (e: Event) => sendMessage(extend(value, e))
+              : undefined;
+            break;
+          }
+        }
+      });
       break;
     }
+
     case "CLEAR_CONTAINER": {
       const containerEl = document.querySelector("#app");
       if (!containerEl) {
@@ -75,38 +126,42 @@ function handleMessage(msg: ClientCommand) {
       containerEl.innerHTML = "";
       break;
     }
+
     case "APPEND_CHILD_TO_CONTAINER": {
       const containerEl = document.querySelector("#app");
-      if (!containerEl) {
-        console.warn("Could not find container #app");
-        return;
-      }
-      const { childId } = msg.payload;
-      const childEl = nodeMap.get(childId);
-      containerEl.append(childEl);
+      if (!containerEl) throw "Could not find container #app";
+      const { childId } = msg.args;
+      const childEl = nodeMap.get(childId)!;
+      containerEl.appendChild(childEl);
       break;
     }
-    case "UPDATE_TEXT": {
-      const { id, text } = msg.payload;
-      const textNode = nodeMap.get(id) as Text;
-      textNode.textContent = text;
+
+    case "REMOVE_CHILD_FROM_CONTAINER": {
+      const containerEl = document.querySelector("#app");
+      if (!containerEl) throw "Could not find container #app";
+      const { childId } = msg.args;
+      const childEl = nodeMap.get(childId)!;
+      containerEl.removeChild(childEl);
       break;
     }
-    case "UPDATE": {
-      const { id, mutations } = msg.payload;
-      const el = nodeMap.get(id);
-      mutations.forEach((mutation) => {
-        switch (mutation.type) {
-          case "SET_STYLE":
-            const { property, value } = mutation;
-            el.style[property] = value;
-            break;
-          case "SET_EVENT":
-            const { event, message } = mutation;
-            (el as any)["on" + event] = message && (() => sendMessage(message));
-            break;
-        }
-      });
+
+    case "APPEND_CHILD": {
+      const { parentId, childId } = msg.args;
+      const parentEl = nodeMap.get(parentId) as Element;
+      const childEl = nodeMap.get(childId)!;
+      parentEl.appendChild(childEl);
+      break;
     }
+
+    case "REMOVE_CHILD": {
+      const { parentId, childId } = msg.args;
+      const parentEl = nodeMap.get(parentId) as Element;
+      const childEl = nodeMap.get(childId)!;
+      parentEl.removeChild(childEl);
+      break;
+    }
+
+    default:
+      throw msg;
   }
 }
