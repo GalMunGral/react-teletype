@@ -30,21 +30,36 @@ ws.onmessage = (e) => {
   }
 };
 
-function extend(cmd: ServerCommand, e: Event): SynthesizedServerCommand {
-  return {
-    ...cmd,
-    clientX: e instanceof MouseEvent ? e.clientX : 0,
-    clientY: e instanceof MouseEvent ? e.clientY : 0,
-    key: e instanceof KeyboardEvent ? e.key : "",
-    value: e instanceof HTMLInputElement ? e.value : "",
-    checked: e instanceof HTMLInputElement ? e.checked : false,
+function eventWrapper(
+  eventName: string,
+  cmd: ServerCommand
+): (e: Event) => void {
+  return (e: Event) => {
+    if (eventName == "dragstart") {
+      (e as DragEvent).dataTransfer?.setDragImage(dragImage, 0, 0);
+    }
+    ws.send(
+      JSON.stringify({
+        ...cmd,
+        clientX: e instanceof MouseEvent ? e.clientX : 0,
+        clientY: e instanceof MouseEvent ? e.clientY : 0,
+        key: e instanceof KeyboardEvent ? e.key : "",
+        value: e instanceof HTMLInputElement ? e.value : "",
+        checked: e instanceof HTMLInputElement ? e.checked : false,
+      })
+    );
   };
-}
-function sendMessage(msg: SynthesizedServerCommand) {
-  ws.send(JSON.stringify(msg));
 }
 
 const nodeMap = new Map<number, Node>();
+const dragImage = document.createElement("div");
+dragImage.style.height = "100px";
+dragImage.style.width = "100px";
+dragImage.style.position = "fixed";
+dragImage.style.background = "red";
+dragImage.style.top = "0";
+dragImage.style.left = "-100px";
+document.body.append(dragImage);
 
 function handleMessage(msg: ClientCommand) {
   switch (msg.type) {
@@ -78,11 +93,11 @@ function handleMessage(msg: ClientCommand) {
           (el.style[name] as any) = value;
         }
 
-        for (const [event, value] of Object.entries(
+        for (const [event, cmd] of Object.entries(
           props.events
         ) as EntriesOf<TEventDeclaration>) {
-          (el as any)["on" + event] = value
-            ? (e: Event) => sendMessage(extend(value, e))
+          (el as any)["on" + event] = cmd
+            ? eventWrapper(event, cmd)
             : undefined;
         }
       }
@@ -108,7 +123,7 @@ function handleMessage(msg: ClientCommand) {
           case "SET_EVENT": {
             const { name, value } = mutation;
             (el as any)["on" + name] = value
-              ? (e: Event) => sendMessage(extend(value, e))
+              ? eventWrapper(name, value)
               : undefined;
             break;
           }

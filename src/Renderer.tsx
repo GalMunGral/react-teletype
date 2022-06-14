@@ -96,7 +96,9 @@ function diffProps(oldJsxProps: JSXProps, newJsxProps: JSXProps) {
       case "data-ondragstart":
       case "data-ondragend":
       case "data-ondrop": {
-        if (newJsxProps[key] != oldJsxProps[key]) {
+        if (
+          JSON.stringify(newJsxProps[key]) != JSON.stringify(oldJsxProps[key])
+        ) {
           mutations.push({
             type: "SET_EVENT",
             name: key.slice(7) as keyof TEventDeclaration,
