@@ -1,7 +1,25 @@
-import { Reducer } from "react";
-import { State, Message } from "./types.js";
+import { Update } from "../Session.js";
+import { State } from "./State.js";
 
-export const reducer: Reducer<State, Message> = (state, msg) => {
+export type Message =
+  | {
+      type: "INCREMENT";
+    }
+  | {
+      type: "DRAGSTART";
+      clientX: number;
+      clientY: number;
+    }
+  | {
+      type: "DRAG";
+      clientX: number;
+      clientY: number;
+    }
+  | {
+      type: "INIT";
+    };
+
+export const update: Update<State, Message> = (state, msg) => {
   switch (msg.type) {
     case "INIT":
       return {

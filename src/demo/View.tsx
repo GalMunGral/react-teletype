@@ -1,9 +1,9 @@
 import React from "react";
-import { useSession } from "../session.js";
+import { useSession } from "../Session.js";
 import { ServerCommand } from "../TNode.js";
-import { Message, State } from "./types.js";
+import { State } from "./State.js";
 
-const App = () => {
+export const App = () => {
   const { r, g, b, deltaX, deltaY, count } = useSession<State>();
   return (
     <div
@@ -48,4 +48,3 @@ const App = () => {
     </div>
   );
 };
-export default App;

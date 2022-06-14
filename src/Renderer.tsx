@@ -1,16 +1,16 @@
 import Reconciler from "react-reconciler";
 import { ReactNode } from "react";
 import {
-  Mutation,
-  ServerCommand,
   Socket,
   TContainer,
   TElement,
-  TEventDeclaration,
+  TText,
   TNode,
   TProps,
+  TEventDeclaration,
   TStyleDeclaration,
-  TText,
+  Mutation,
+  ServerCommand,
 } from "./TNode";
 
 type JSXProps = {
@@ -113,8 +113,6 @@ function diffProps(oldJsxProps: JSXProps, newJsxProps: JSXProps) {
   return mutations;
 }
 
-type UpdatePayload = Array<Mutation>;
-
 interface HostContext {
   client: Socket;
 }
@@ -129,7 +127,7 @@ const SplitReconcilier = Reconciler<
   unknown,
   unknown,
   HostContext,
-  UpdatePayload,
+  Array<Mutation>,
   unknown,
   unknown,
   unknown

@@ -1,6 +1,6 @@
 import React from "react";
 import { startApp } from "./index.js";
-import App from "./demo/App.js";
-import { reducer } from "./demo/reducer.js";
+import { update } from "./demo/Update.js";
+import { App } from "./demo/View.js";
 
-startApp(<App />, reducer);
+startApp(<App />, update);

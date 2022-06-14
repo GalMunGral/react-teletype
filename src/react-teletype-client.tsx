@@ -1,9 +1,9 @@
 import {
-  ClientCommand,
-  SynthesizedServerCommand,
+  TStyleDeclaration,
   TEventDeclaration,
   TNodeProperties,
-  TStyleDeclaration,
+  ClientCommand,
+  SynthesizedServerCommand,
 } from "./TNode";
 
 type ServerCommand = any;
@@ -38,16 +38,15 @@ function eventWrapper(
     if (eventName == "dragstart") {
       (e as DragEvent).dataTransfer!.setDragImage(dragImage, 0, 0);
     }
-    ws.send(
-      JSON.stringify({
-        ...cmd,
-        clientX: e instanceof MouseEvent ? e.clientX : 0,
-        clientY: e instanceof MouseEvent ? e.clientY : 0,
-        key: e instanceof KeyboardEvent ? e.key : "",
-        value: e instanceof HTMLInputElement ? e.value : "",
-        checked: e instanceof HTMLInputElement ? e.checked : false,
-      })
-    );
+    const synthesizedCommand: SynthesizedServerCommand = {
+      ...cmd,
+      clientX: e instanceof MouseEvent ? e.clientX : 0,
+      clientY: e instanceof MouseEvent ? e.clientY : 0,
+      key: e instanceof KeyboardEvent ? e.key : "",
+      value: e instanceof HTMLInputElement ? e.value : "",
+      checked: e instanceof HTMLInputElement ? e.checked : false,
+    };
+    ws.send(JSON.stringify(synthesizedCommand));
   };
 }
 

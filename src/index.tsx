@@ -4,23 +4,19 @@ import path from "path";
 import React, { ReactNode } from "react";
 import { WebSocketServer } from "ws";
 import { SplitRenderer } from "./Renderer.js";
-import {
-  Session,
-  Reducer,
-  SessionContext as SessionContext,
-} from "./session.js";
+import { Session, Update, SessionContext } from "./Session.js";
 
 type ServerCommand = any;
 
 export function startApp(
   rootNode: ReactNode,
-  reducer: Reducer<any, any>,
+  reducer: Update<any, any>,
   port = process.env.PORT
 ) {
   const bootstrap = `
     <div id="app"></div>
       <script>window.exports = {};</script>
-    <script src="/teletype.js"></script>
+    <script src="/react-teletype-client.js"></script>
   `;
 
   const server = http
