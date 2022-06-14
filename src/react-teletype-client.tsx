@@ -34,7 +34,11 @@ function eventWrapper(
   eventName: string,
   cmd: ServerCommand
 ): (e: Event) => void {
+  let last = -1;
   return (e: Event) => {
+    const now = Date.now();
+    if (now - last < 16) return;
+    last = now;
     if (eventName == "dragstart") {
       (e as DragEvent).dataTransfer!.setDragImage(dragImage, 0, 0);
     }
